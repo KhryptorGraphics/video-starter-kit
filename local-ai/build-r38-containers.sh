@@ -49,6 +49,10 @@ echo "=== Building Kokoro TTS ==="
 ./build.sh kokoro-tts-fastapi --name "kokoro-tts:${TAG_SUFFIX}" --skip-tests=all
 
 echo ""
+echo "=== Building Cosmos Video Generation ==="
+./build.sh cosmos1-diffusion-renderer:1.0.4 --name "cosmos:${TAG_SUFFIX}" --skip-tests=all
+
+echo ""
 echo "=== Build Complete ==="
 echo ""
 echo "Images built:"
@@ -58,6 +62,7 @@ echo ""
 echo "Next steps:"
 echo "1. Update docker-compose.yml with new image tags:"
 echo "   - comfyui:${TAG_SUFFIX}"
+echo "   - cosmos:${TAG_SUFFIX}"
 echo "   - audiocraft:${TAG_SUFFIX}"
 echo "   - kokoro-tts:${TAG_SUFFIX}"
 echo ""

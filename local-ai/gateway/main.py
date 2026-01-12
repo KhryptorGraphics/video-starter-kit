@@ -369,8 +369,49 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Health check endpoint."""
+    """Basic health check endpoint."""
     return {"status": "healthy"}
+
+
+@app.get("/health/detailed")
+async def health_detailed():
+    """Detailed health check that probes all backend services."""
+    from routes import COMFYUI_URL, COSMOS_URL, AUDIOCRAFT_URL, TTS_URL
+
+    services = {
+        "comfyui": {"url": COMFYUI_URL, "endpoint": "/system_stats", "port": 8188},
+        "cosmos": {"url": COSMOS_URL, "endpoint": "/health", "port": 8000},
+        "audiocraft": {"url": AUDIOCRAFT_URL, "endpoint": "/", "port": 8000},
+        "tts": {"url": TTS_URL, "endpoint": "/v1/models", "port": 8880},
+    }
+
+    results = {}
+    overall_healthy = True
+
+    for name, config in services.items():
+        try:
+            response = await http_client.get(
+                f"{config['url']}{config['endpoint']}",
+                timeout=5.0
+            )
+            results[name] = {
+                "status": "healthy" if response.status_code < 500 else "unhealthy",
+                "response_code": response.status_code,
+                "url": config["url"],
+            }
+        except httpx.TimeoutException:
+            results[name] = {"status": "timeout", "url": config["url"]}
+            overall_healthy = False
+        except httpx.RequestError as e:
+            results[name] = {"status": "unreachable", "error": str(e), "url": config["url"]}
+            overall_healthy = False
+
+    return {
+        "status": "healthy" if overall_healthy else "degraded",
+        "services": results,
+        "gateway": "running",
+        "active_jobs": len([j for j in jobs.values() if j["status"] in ("pending", "processing")]),
+    }
 
 
 @app.get("/endpoints")

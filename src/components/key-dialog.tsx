@@ -72,19 +72,31 @@ export function KeyDialog({ onOpenChange, open, ...props }: KeyDialogProps) {
           gateway: { status: "healthy", url: localGatewayUrl },
           services: {
             comfyui: {
-              status: data.services?.comfyui?.status === "healthy" ? "healthy" : "unhealthy",
+              status:
+                data.services?.comfyui?.status === "healthy"
+                  ? "healthy"
+                  : "unhealthy",
               url: data.services?.comfyui?.url,
             },
             cosmos: {
-              status: data.services?.cosmos?.status === "healthy" ? "healthy" : "unhealthy",
+              status:
+                data.services?.cosmos?.status === "healthy"
+                  ? "healthy"
+                  : "unhealthy",
               url: data.services?.cosmos?.url,
             },
             audiocraft: {
-              status: data.services?.audiocraft?.status === "healthy" ? "healthy" : "unhealthy",
+              status:
+                data.services?.audiocraft?.status === "healthy"
+                  ? "healthy"
+                  : "unhealthy",
               url: data.services?.audiocraft?.url,
             },
             tts: {
-              status: data.services?.tts?.status === "healthy" ? "healthy" : "unhealthy",
+              status:
+                data.services?.tts?.status === "healthy"
+                  ? "healthy"
+                  : "unhealthy",
               url: data.services?.tts?.url,
             },
           },
@@ -117,7 +129,9 @@ export function KeyDialog({ onOpenChange, open, ...props }: KeyDialogProps) {
   const StatusIcon = ({ status }: { status: ServiceHealth["status"] }) => {
     switch (status) {
       case "checking":
-        return <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />;
+        return (
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        );
       case "healthy":
         return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
       case "unhealthy":
@@ -130,7 +144,10 @@ export function KeyDialog({ onOpenChange, open, ...props }: KeyDialogProps) {
   const serviceLabels: Record<string, { name: string; description: string }> = {
     comfyui: { name: "ComfyUI", description: "Image generation (Flux.1-dev)" },
     cosmos: { name: "Cosmos", description: "Video generation" },
-    audiocraft: { name: "Audiocraft", description: "Music generation (MusicGen)" },
+    audiocraft: {
+      name: "Audiocraft",
+      description: "Music generation (MusicGen)",
+    },
     tts: { name: "Kokoro TTS", description: "Text-to-speech" },
   };
 
@@ -167,7 +184,9 @@ export function KeyDialog({ onOpenChange, open, ...props }: KeyDialogProps) {
             /* Local AI settings */
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Gateway URL</span>
+                <span className="text-sm text-muted-foreground">
+                  Gateway URL
+                </span>
                 <code className="text-xs bg-muted px-2 py-1 rounded">
                   {localGatewayUrl}
                 </code>
@@ -192,27 +211,32 @@ export function KeyDialog({ onOpenChange, open, ...props }: KeyDialogProps) {
 
                 {localHealth ? (
                   <div className="space-y-2">
-                    {(Object.keys(serviceLabels) as Array<keyof typeof serviceLabels>).map(
-                      (key) => (
-                        <div
-                          key={key}
-                          className="flex items-center justify-between py-1"
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-sm">{serviceLabels[key].name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {serviceLabels[key].description}
-                            </span>
-                          </div>
-                          <StatusIcon
-                            status={
-                              localHealth.services[key as keyof typeof localHealth.services]
-                                ?.status || "unreachable"
-                            }
-                          />
+                    {(
+                      Object.keys(serviceLabels) as Array<
+                        keyof typeof serviceLabels
+                      >
+                    ).map((key) => (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between py-1"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm">
+                            {serviceLabels[key].name}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {serviceLabels[key].description}
+                          </span>
                         </div>
-                      )
-                    )}
+                        <StatusIcon
+                          status={
+                            localHealth.services[
+                              key as keyof typeof localHealth.services
+                            ]?.status || "unreachable"
+                          }
+                        />
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
@@ -223,7 +247,9 @@ export function KeyDialog({ onOpenChange, open, ...props }: KeyDialogProps) {
 
               <p className="text-xs text-muted-foreground">
                 Local AI mode uses on-device inference. Set{" "}
-                <code className="bg-muted px-1 rounded">NEXT_PUBLIC_LOCAL_AI=false</code>{" "}
+                <code className="bg-muted px-1 rounded">
+                  NEXT_PUBLIC_LOCAL_AI=false
+                </code>{" "}
                 to switch to cloud mode.
               </p>
             </div>

@@ -36,9 +36,7 @@ const falCloudClient = createFalClient({
  * runtime interfaces but different TypeScript signatures.
  */
 export const fal = (
-  isLocalMode
-    ? createLocalClient({ baseUrl: localGatewayUrl })
-    : falCloudClient
+  isLocalMode ? createLocalClient({ baseUrl: localGatewayUrl }) : falCloudClient
 ) as typeof falCloudClient;
 
 /**

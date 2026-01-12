@@ -43,7 +43,7 @@ class LocalQueueClient {
    */
   async submit(
     endpointId: string,
-    options: { input: Record<string, unknown> }
+    options: { input: Record<string, unknown> },
   ): Promise<QueueSubmitResult> {
     const url = `${this.baseUrl}/${endpointId}`;
 
@@ -55,7 +55,9 @@ class LocalQueueClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || `Queue submit failed: ${response.status}`);
+      throw new Error(
+        error.detail || `Queue submit failed: ${response.status}`,
+      );
     }
 
     const data = await response.json();
@@ -71,7 +73,7 @@ class LocalQueueClient {
    */
   async status(
     endpointId: string,
-    options: { requestId: string }
+    options: { requestId: string },
   ): Promise<QueueStatusResult> {
     const url = `${this.baseUrl}/status/${options.requestId}`;
 
@@ -79,7 +81,9 @@ class LocalQueueClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || `Status check failed: ${response.status}`);
+      throw new Error(
+        error.detail || `Status check failed: ${response.status}`,
+      );
     }
 
     const data = await response.json();
@@ -103,7 +107,7 @@ class LocalQueueClient {
    */
   async result<T = unknown>(
     endpointId: string,
-    options: { requestId: string }
+    options: { requestId: string },
   ): Promise<QueueResultResponse<T>> {
     const url = `${this.baseUrl}/result/${options.requestId}`;
 
@@ -114,7 +118,9 @@ class LocalQueueClient {
         throw new Error("Job still processing");
       }
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || `Result fetch failed: ${response.status}`);
+      throw new Error(
+        error.detail || `Result fetch failed: ${response.status}`,
+      );
     }
 
     const data = await response.json();
@@ -140,7 +146,7 @@ class LocalAIClient {
    */
   async run<T = unknown>(
     endpointId: string,
-    options: { input: Record<string, unknown> }
+    options: { input: Record<string, unknown> },
   ): Promise<T> {
     const url = `${this.config.baseUrl}/${endpointId}?sync=true`;
 
@@ -167,7 +173,7 @@ class LocalAIClient {
     options: {
       input: Record<string, unknown>;
       onQueueUpdate?: (status: QueueStatusResult) => void;
-    }
+    },
   ): Promise<T> {
     return new Promise(async (resolve, reject) => {
       try {
@@ -218,7 +224,7 @@ class LocalAIClient {
    */
   async *stream<T = unknown>(
     endpointId: string,
-    options: { input: Record<string, unknown> }
+    options: { input: Record<string, unknown> },
   ): AsyncGenerator<{ data: T; partial: boolean }> {
     const result = await this.run<T>(endpointId, options);
     yield { data: result, partial: false };
@@ -229,7 +235,7 @@ class LocalAIClient {
  * Create a local AI client instance.
  */
 export function createLocalClient(
-  config: Partial<LocalClientConfig> = {}
+  config: Partial<LocalClientConfig> = {},
 ): LocalAIClient {
   return new LocalAIClient(config);
 }

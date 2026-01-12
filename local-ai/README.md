@@ -1,142 +1,220 @@
 # Local AI Setup for Video Starter Kit
 
-Run AI inference locally on NVIDIA Jetson Thor instead of using fal.ai cloud.
+Run AI inference locally on NVIDIA Jetson instead of using fal.ai cloud.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   Video Starter Kit                      │
-│                    localhost:3000                        │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────┐
-│              Local API Gateway :10000                    │
-└──────┬──────────┬──────────┬──────────┬────────────────┘
-       │          │          │          │
-       ▼          ▼          ▼          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Video Starter Kit                          │
+│                    localhost:3000                            │
+└───────────────────────┬─────────────────────────────────────┘
+                        │ NEXT_PUBLIC_LOCAL_AI=true
+                        ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Local AI Gateway                           │
+│                    (Port 10000)                              │
+│  - fal.ai API compatibility layer                           │
+│  - Job queue management                                      │
+│  - Request routing to backends                               │
+└───────┬─────────┬─────────┬─────────┬───────────────────────┘
+        │         │         │         │
+        ▼         ▼         ▼         ▼
    ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
-   │ Flux   │ │ Cosmos │ │ Stable │ │  Riva  │
-   │ :10001 │ │ :10002 │ │ Audio  │ │ :10004 │
-   │        │ │        │ │ :10003 │ │        │
+   │ComfyUI │ │ Cosmos │ │Audio-  │ │Kokoro  │
+   │ :10001 │ │ :10002 │ │craft   │ │TTS     │
+   │        │ │        │ │ :10003 │ │ :10004 │
+   │Flux.1  │ │Video   │ │MusicGen│ │Speech  │
    └────────┘ └────────┘ └────────┘ └────────┘
 ```
 
-## Models
+## Services
 
-| Category | Model | Container |
-|----------|-------|-----------|
-| Image | Flux.1-dev | dustynv/flux:dev-r36.4.0 |
-| Video | NVIDIA Cosmos | nvcr.io/nim/nvidia/cosmos |
-| Music | Stable Audio 2.0 | dustynv/stable-audio |
-| TTS | NVIDIA Riva | nvcr.io/nvidia/riva |
+| Service | Port | Model | Purpose |
+|---------|------|-------|---------|
+| Gateway | 10000 | - | API routing & job management |
+| ComfyUI | 10001 | Flux.1-dev | Image generation |
+| Cosmos | 10002 | Cosmos-1.0 | Video generation |
+| Audiocraft | 10003 | MusicGen | Music generation |
+| Kokoro TTS | 10004 | Kokoro | Text-to-speech |
 
 ## Quick Start
 
-### 1. One-time setup
+### 1. Start services
 
 ```bash
 cd local-ai
-./scripts/setup.sh
+docker compose up -d
 ```
 
-This will:
-- Log into NVIDIA NGC
-- Pull all container images
-- Build the API gateway
-
-### 2. Start services
+### 2. Check health
 
 ```bash
-./scripts/start-all.sh
+./check-health.sh
 ```
 
-### 3. Start the app
+### 3. Enable local AI in the app
 
 ```bash
-# In another terminal
-cd ..
+# In the main project directory
+export NEXT_PUBLIC_LOCAL_AI=true
+export NEXT_PUBLIC_LOCAL_AI_URL=http://localhost:10000
 npm run dev
 ```
 
-Open http://localhost:3000
+Open http://localhost:3000 - you should see a green "Local AI" badge in the header.
 
 ## Configuration
 
 ### Environment Variables
 
-Edit `.env` in this directory:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_LOCAL_AI` | `false` | Enable local AI mode |
+| `NEXT_PUBLIC_LOCAL_AI_URL` | `http://localhost:10000` | Gateway URL |
+| `GATEWAY_PORT` | `10000` | Gateway external port |
+| `COMFYUI_PORT` | `10001` | ComfyUI external port |
+| `COSMOS_PORT` | `10002` | Cosmos external port |
+| `AUDIOCRAFT_PORT` | `10003` | Audiocraft external port |
+| `TTS_PORT` | `10004` | TTS external port |
+
+### Docker Compose Override
+
+Create a `.env` file to customize:
 
 ```bash
-NGC_API_KEY=your-ngc-api-key
 GATEWAY_PORT=10000
-FLUX_PORT=10001
+COMFYUI_PORT=10001
 COSMOS_PORT=10002
-STABLE_AUDIO_PORT=10003
-RIVA_PORT=10004
+AUDIOCRAFT_PORT=10003
+TTS_PORT=10004
 ```
 
-### Frontend Toggle
+## Auto-Start on Boot
 
-Edit `../.env.local`:
+Install as a systemd service for automatic startup:
 
 ```bash
-# Enable local mode
-NEXT_PUBLIC_LOCAL_AI=true
-
-# Or disable to use fal.ai cloud
-NEXT_PUBLIC_LOCAL_AI=false
+sudo ./install-service.sh
 ```
 
-## Commands
-
+Commands:
 ```bash
-# Start all services
-./scripts/start-all.sh
+sudo systemctl start local-ai     # Start services
+sudo systemctl stop local-ai      # Stop services
+sudo systemctl status local-ai    # Check status
+sudo journalctl -u local-ai -f    # View logs
+```
 
-# Stop all services
-./scripts/stop-all.sh
+To uninstall:
+```bash
+sudo ./uninstall-service.sh
+```
 
-# View logs
-docker compose logs -f
+## Health Monitoring
 
-# View specific service logs
-docker compose logs -f flux
-docker compose logs -f cosmos
+### CLI
+```bash
+./check-health.sh           # Basic check
+./check-health.sh --verbose # Detailed JSON output
+```
 
-# Restart a specific service
-docker compose restart gateway
+### API
+- `GET /health` - Basic gateway status
+- `GET /health/detailed` - All backend services status
+
+### Docker
+```bash
+docker compose ps              # Container status
+docker compose logs -f         # All logs
+docker compose logs -f cosmos  # Specific service
 ```
 
 ## Troubleshooting
 
-### Container won't start
+### CUDA Error 801: operation not supported
 
-Check NVIDIA runtime:
+**Cause:** Container built for different CUDA/L4T version than host.
+
+**Solution:** Build containers matching your system using [jetson-containers](https://github.com/dusty-nv/jetson-containers):
+
 ```bash
-docker run --rm --runtime=nvidia --gpus all nvidia/cuda:12.0-base nvidia-smi
+git clone https://github.com/dusty-nv/jetson-containers
+cd jetson-containers
+
+# Check your L4T version
+cat /etc/nv_tegra_release
+
+# Build PyTorch for your version
+./build.sh pytorch
+
+# Build app containers
+./build.sh comfyui audiocraft
 ```
 
-### GPU memory issues
+### Container won't start
 
-Some models require significant VRAM. Try:
-1. Stop other GPU processes
-2. Reduce batch size in gateway config
-3. Use smaller model variants
-
-### Network issues
-
-Ensure ports 10000-10004 are available:
 ```bash
+# Check logs
+docker compose logs [service]
+
+# Verify GPU access
+docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi
+
+# Check NVIDIA runtime
+docker info | grep -i runtime
+```
+
+### Out of memory
+
+The Jetson Thor has unified memory shared between CPU and GPU. If you run out:
+
+1. Stop unused services: `docker compose stop cosmos`
+2. Use smaller models
+3. Reduce batch size in gateway config
+4. Close other GPU applications
+
+### Port conflicts
+
+```bash
+# Check what's using a port
 lsof -i :10000
-lsof -i :10001
-# etc.
+
+# Kill process
+kill -9 $(lsof -t -i:10000)
 ```
 
 ## Hardware Requirements
 
-- NVIDIA Jetson Thor with JetPack 7.4+
-- CUDA 13+
-- Minimum 32GB unified memory recommended
-- ~100GB disk space for model weights
+- **Recommended:** NVIDIA Jetson Thor with JetPack 7.4+
+- **Minimum:** Jetson Orin 32GB
+- CUDA 13.0+ (for R38.x containers)
+- ~60GB disk space for containers
+- ~100GB additional for model weights
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.yml` | Container orchestration |
+| `gateway/` | FastAPI gateway service |
+| `audiocraft_server.py` | Gradio wrapper for MusicGen |
+| `check-health.sh` | Health check CLI script |
+| `local-ai.service` | systemd unit file |
+| `local-ai.logrotate` | Log rotation config |
+| `install-service.sh` | Service installer |
+| `uninstall-service.sh` | Service uninstaller |
+
+## API Compatibility
+
+The gateway provides fal.ai-compatible endpoints:
+
+```
+POST /{endpoint_id}         # Submit job
+GET  /status/{request_id}   # Check status
+GET  /result/{request_id}   # Get result
+GET  /health                # Health check
+GET  /health/detailed       # Detailed status
+```
+
+This allows the Video Starter Kit frontend to work without modification - just set `NEXT_PUBLIC_LOCAL_AI=true`.

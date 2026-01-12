@@ -1,0 +1,13 @@
+# Logrotate configuration for Local AI container logs
+# Install: sudo cp local-ai.logrotate /etc/logrotate.d/local-ai
+
+/var/lib/docker/containers/*/*.log {
+    rotate 7
+    daily
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    maxsize 100M
+}

@@ -1,0 +1,31 @@
+[Unit]
+Description=Local AI Services for Video Starter Kit
+Documentation=https://github.com/KhryptorGraphics/video-starter-kit
+After=docker.service nvidia-container-runtime.service
+Requires=docker.service
+Wants=nvidia-container-runtime.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/kp/repo2/video-starter-kit/local-ai
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose down
+ExecReload=/usr/bin/docker compose restart
+TimeoutStartSec=300
+TimeoutStopSec=120
+
+# Restart policy handled by docker compose restart: unless-stopped
+# This service just ensures containers start on boot
+
+# Environment
+Environment=COMPOSE_PROJECT_NAME=local-ai
+Environment=DOCKER_HOST=unix:///var/run/docker.sock
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=local-ai
+
+[Install]
+WantedBy=multi-user.target

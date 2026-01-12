@@ -1,11 +1,50 @@
 "use client";
 
 import { createFalClient } from "@fal-ai/client";
+import { createLocalClient } from "./local-client";
 
-export const fal = createFalClient({
+/**
+ * Check if local AI mode is enabled via environment variable.
+ * Set NEXT_PUBLIC_LOCAL_AI=true to use local containers instead of fal.ai cloud.
+ */
+const isLocalMode = process.env.NEXT_PUBLIC_LOCAL_AI === "true";
+
+/**
+ * Local AI gateway URL (default: localhost:10000)
+ */
+const localGatewayUrl =
+  process.env.NEXT_PUBLIC_LOCAL_AI_URL || "http://localhost:10000";
+
+/**
+ * fal.ai cloud client (used when local mode is disabled)
+ */
+const falCloudClient = createFalClient({
   credentials: () => localStorage?.getItem("falKey") as string,
   proxyUrl: "/api/fal",
 });
+
+/**
+ * The AI client - either local or cloud based on environment config.
+ *
+ * Usage:
+ * - fal.subscribe(endpointId, { input, onQueueUpdate }) - Subscribe with polling
+ * - fal.queue.submit(endpointId, { input }) - Submit job to queue
+ * - fal.queue.status(endpointId, { requestId }) - Check job status
+ * - fal.queue.result(endpointId, { requestId }) - Get job result
+ *
+ * Note: Type assertion used because local and cloud clients have compatible
+ * runtime interfaces but different TypeScript signatures.
+ */
+export const fal = (
+  isLocalMode
+    ? createLocalClient({ baseUrl: localGatewayUrl })
+    : falCloudClient
+) as typeof falCloudClient;
+
+/**
+ * Export mode indicator for UI display
+ */
+export const isUsingLocalAI = isLocalMode;
 
 export type InputAsset =
   | "video"

@@ -1,0 +1,140 @@
+services:
+  # API Gateway - Routes fal.ai-style requests to local containers
+  gateway:
+    build: ./gateway
+    container_name: local-ai-gateway
+    ports:
+      - "${GATEWAY_PORT:-10000}:10000"
+    environment:
+      # ComfyUI runs on port 8188 internally
+      - COMFYUI_URL=http://comfyui:8188
+      # Cosmos for video generation
+      - COSMOS_URL=http://cosmos:8000
+      # Audiocraft for music generation (via custom wrapper)
+      - AUDIOCRAFT_URL=http://audiocraft:8000
+      # Kokoro-TTS runs on port 8880 internally
+      - TTS_URL=http://tts:8880
+    depends_on:
+      - comfyui
+      - cosmos
+      - audiocraft
+      - tts
+    networks:
+      - local-ai-network
+    restart: unless-stopped
+    volumes:
+      # Shared volume for generated media files
+      - generated-media:/data/generated
+
+  # Image Generation - ComfyUI with Flux.1-dev support
+  # R36.4.3 container compatible with R38 via NVIDIA runtime
+  comfyui:
+    image: dustynv/comfyui:r36.4.3
+    container_name: local-ai-comfyui
+    ports:
+      - "${COMFYUI_PORT:-10001}:8188"
+    runtime: nvidia
+    privileged: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - comfyui-cache:/root/.cache
+      - comfyui-models:/opt/ComfyUI/models
+      - generated-media:/data/generated
+    networks:
+      - local-ai-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Video Generation - NVIDIA Cosmos (jetson-containers build)
+  cosmos:
+    image: dustynv/cosmos:r36.4.3-cu128-24.04
+    container_name: local-ai-cosmos
+    ports:
+      - "${COSMOS_PORT:-10002}:8000"
+    runtime: nvidia
+    privileged: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - cosmos-cache:/root/.cache
+      - generated-media:/data/generated
+    networks:
+      - local-ai-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Audio/Music Generation - Meta's Audiocraft (MusicGen)
+  audiocraft:
+    image: dustynv/audiocraft:r36.3.0
+    container_name: local-ai-audiocraft
+    ports:
+      - "${AUDIOCRAFT_PORT:-10003}:8000"
+    runtime: nvidia
+    privileged: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - audiocraft-cache:/root/.cache
+      - generated-media:/data/generated
+      - ./audiocraft_server.py:/app/server.py:ro
+    networks:
+      - local-ai-network
+    restart: unless-stopped
+    # Run Gradio server for music generation API
+    command: ["python3", "/app/server.py"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Text-to-Speech - Kokoro TTS with FastAPI
+  tts:
+    image: dustynv/kokoro-tts:fastapi-r36.4.0-cu128-24.04
+    container_name: local-ai-tts
+    ports:
+      - "${TTS_PORT:-10004}:8880"
+    runtime: nvidia
+    privileged: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - tts-cache:/root/.cache
+      - generated-media:/data/generated
+    networks:
+      - local-ai-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  local-ai-network:
+    driver: bridge
+
+volumes:
+  comfyui-cache:
+  comfyui-models:
+  cosmos-cache:
+  audiocraft-cache:
+  tts-cache:
+  generated-media:

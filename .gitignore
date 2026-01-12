@@ -29,6 +29,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# local AI secrets (NGC API key)
+local-ai/.env
+
 # vercel
 .vercel
 

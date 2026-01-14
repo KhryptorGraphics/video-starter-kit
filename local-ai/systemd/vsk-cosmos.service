@@ -1,0 +1,19 @@
+[Unit]
+Description=VSK Cosmos - Video Generation Service
+After=network.target
+
+[Service]
+Type=simple
+User=kp
+WorkingDirectory=/home/kp/repo2/video-starter-kit/local-ai/services
+Environment="PATH=/home/kp/anaconda3/envs/cosmos/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CUDA_VISIBLE_DEVICES=0"
+Environment="PYTHONPATH=/home/kp/rosrepos/cosmos/cosmos-predict2.5"
+ExecStart=/home/kp/anaconda3/envs/cosmos/bin/python cosmos_service.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

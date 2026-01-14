@@ -31,8 +31,8 @@ from routes import get_route, list_available_endpoints, RouteConfig
 # Job storage (in-memory for simplicity, use Redis in production)
 jobs: Dict[str, Dict[str, Any]] = {}
 
-# Generated media directory
-MEDIA_DIR = Path("/data/generated")
+# Generated media directory (use local path instead of /data for non-Docker)
+MEDIA_DIR = Path(os.getenv("MEDIA_DIR", "/tmp/vsk-generated"))
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
 

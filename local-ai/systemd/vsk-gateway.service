@@ -1,0 +1,22 @@
+[Unit]
+Description=VSK Gateway - Local AI API Gateway
+After=network.target vsk-comfyui.service vsk-cosmos.service vsk-audiocraft.service vsk-tts-router.service
+Wants=vsk-comfyui.service vsk-cosmos.service vsk-audiocraft.service vsk-tts-router.service
+
+[Service]
+Type=simple
+User=kp
+WorkingDirectory=/home/kp/repo2/video-starter-kit/local-ai/gateway
+Environment="PATH=/home/kp/anaconda3/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="COMFYUI_URL=http://localhost:8188"
+Environment="COSMOS_URL=http://localhost:10002"
+Environment="AUDIOCRAFT_URL=http://localhost:10003"
+Environment="TTS_URL=http://localhost:10004"
+ExecStart=/home/kp/anaconda3/bin/python main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

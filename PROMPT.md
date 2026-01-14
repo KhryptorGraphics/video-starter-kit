@@ -1,205 +1,406 @@
-# Ralph Loop Orchestration: Local AI Video Starter Kit
+# Ralph Loop Orchestration: Video Starter Kit Local AI (Conda Edition)
 
 ## Mission
 
-Complete the development and deployment of a fully local AI video generation system on NVIDIA Jetson Thor, replacing cloud-based fal.ai with local inference containers.
+Complete the development and deployment of a fully local AI video generation system on NVIDIA Jetson Thor (R38/CUDA 13), using **native conda environments** instead of Docker containers. Run continuously until ALL features work and ALL tests pass.
 
 ## Project Context
 
 **Repository:** `/home/kp/repo2/video-starter-kit`
-**Hardware:** NVIDIA Jetson Thor, JetPack 7.4, CUDA 13
-**Status:** Infrastructure scaffolding complete, integration testing needed
+**Hardware:** NVIDIA Jetson Thor, JetPack 7.4, L4T R38.4.0, CUDA 13.0, Driver 580.00
+**Beads Workspace:** Initialized at `.beads/`
+**Memory Systems:** Serena (project memories), Cipher (knowledge store)
 
-### What's Already Built
-
-1. **Local AI Gateway** (`local-ai/gateway/`) - FastAPI server on port 10000 that routes fal.ai-style requests to local containers
-2. **Docker Compose Stack** (`local-ai/docker-compose.yml`) - Orchestrates 4 AI containers:
-   - Flux.1-dev (image generation) - port 10001
-   - NVIDIA Cosmos (video generation) - port 10002
-   - Stable Audio 2.0 (music generation) - port 10003
-   - NVIDIA Riva (TTS) - port 10004
-3. **Frontend Integration** (`src/lib/fal.ts`, `src/lib/local-client.ts`) - Toggle between local/cloud mode via `NEXT_PUBLIC_LOCAL_AI=true`
-4. **Setup Scripts** (`local-ai/scripts/`) - setup.sh, start-all.sh, stop-all.sh
-
-### Key Files
+### Critical Credentials
 
 ```
-local-ai/
-├── docker-compose.yml          # Container orchestration
-├── .env                        # NGC_API_KEY for pulling containers
-├── gateway/
-│   ├── main.py                 # FastAPI gateway (fal.ai translator)
-│   ├── routes.py               # Endpoint → container mapping
-│   └── Dockerfile
-└── scripts/
-    ├── setup.sh                # NGC login + image pulls
-    ├── start-all.sh
-    └── stop-all.sh
-
-src/lib/
-├── fal.ts                      # AI client (auto-switches local/cloud)
-└── local-client.ts             # Local AI client implementation
+NGC_API_KEY=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
+MySQL Root Password: teamrsi123teamrsi123teamrsi123
 ```
 
-### NGC Credentials
+## Deployment Strategy: Conda Environments
 
+**NO DOCKER CONTAINERS** for AI services. Use native conda environments with systemd services.
+
+### Existing Conda Environments (Use These)
+| Service | Environment | Python | Status |
+|---------|-------------|--------|--------|
+| ComfyUI | `/home/kp/anaconda3/envs/comfyui` | 3.12 | ✅ Ready |
+| Cosmos | `/home/kp/anaconda3/envs/cosmos` | 3.10 | ✅ Ready |
+| Riva TTS | `/home/kp/anaconda3/envs/riva_thor` | 3.11 | ✅ Ready |
+
+### New Conda Environments (Create These)
+| Service | Environment | Python | Status |
+|---------|-------------|--------|--------|
+| Audiocraft | `vsk-audiocraft` | 3.10 | ❌ Create |
+| Kokoro TTS | `vsk-kokoro` | 3.10 | ❌ Create |
+
+## Orchestration Rules
+
+### Memory Layer Usage
+
+1. **Serena**: Use for code navigation, symbol search, project memories
+   - Activate project: `mcp__serena__activate_project` with `/home/kp/repo2/video-starter-kit`
+   - Read/write memories for persistent knowledge
+   - Use symbolic tools for code understanding
+
+2. **Cipher**: Use for cross-session knowledge storage
+   - Store research findings, API documentation
+   - Query for solutions to known problems
+
+3. **Beads**: Use for ALL task tracking
+   - Create tasks morphologically as work is discovered
+   - Update task status as work progresses
+   - Close tasks only when verified complete
+   - Track dependencies between tasks
+
+### Port Management Protocol
+
+Before starting ANY service:
+1. Check if port is in use: `lsof -i :<port>` or `ss -tlnp | grep <port>`
+2. If port in use by another project: Reconfigure THIS project to use different port
+3. NEVER kill services from other projects
+4. Document final port assignments in beads task notes
+
+**Port Assignments:**
+| Service | Port |
+|---------|------|
+| Gateway | 10000 |
+| ComfyUI | 10001 |
+| Cosmos | 10002 |
+| Audiocraft | 10003 |
+| Riva TTS | 10004 |
+| Kokoro TTS | 10005 |
+
+### Dependency Management Protocol
+
+1. **Use existing conda environments** when available
+2. **Create new project-specific envs** for missing services (vsk-*)
+3. **Copy CUDA/TensorRT deps** if needed, never modify source envs
+4. **Compile from source** if pip/conda unavailable - Create beads task for compilation
+5. **NEVER use CPU implementations** - All CUDA/TensorRT capable code must use GPU
+6. **Never modify non-project conda envs** - Only modify envs created for this project
+
+### Morphological Task Creation
+
+When discovering new work:
+```bash
+bd create --title="<descriptive title>" --type=task|bug|feature --priority=<0-4>
+bd dep add <new-task> <blocking-task>  # If dependencies exist
 ```
-NGC_API_KEY=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
-```
 
-## Beads Task Tracking
+When a task reveals sub-tasks, create them and link dependencies.
 
-Use beads (`bd`) to track progress. Workspace is already initialized.
+---
 
-### Current Tasks (Priority Order)
+## Phase 1: Environment Setup
 
-| ID | Priority | Title | Blocked By |
-|----|----------|-------|------------|
-| LOCAL-x8m | P1 | Verify and pull container images for Jetson Thor | - |
-| LOCAL-ccn | P1 | Add static file serving for generated media | - |
-| LOCAL-tpn | P1 | Test and fix Flux.1-dev container integration | LOCAL-x8m |
-| LOCAL-7f8 | P1 | Test and fix NVIDIA Cosmos video generation | LOCAL-x8m |
-| LOCAL-cvl | P1 | End-to-end testing of complete workflow | LOCAL-tpn, LOCAL-7f8 |
-| LOCAL-dk7 | P2 | Test and fix Stable Audio music integration | LOCAL-x8m |
-| LOCAL-3zp | P2 | Test and fix NVIDIA Riva TTS integration | LOCAL-x8m |
-| LOCAL-ksu | P2 | Add health check endpoints | - |
-| LOCAL-jlx | P3 | Add UI indicator for local AI mode | - |
-| LOCAL-6zk | P3 | Create systemd service for auto-start | - |
-
-### Beads Commands
+### 1a. Create Audiocraft Environment
 
 ```bash
-# List ready tasks (no blockers)
-bd ready
+# Create new conda environment
+conda create -n vsk-audiocraft python=3.10 -y
+conda activate vsk-audiocraft
 
-# Show task details
-bd show LOCAL-x8m
+# Install PyTorch with CUDA 13 support
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
 
-# Update task status
-bd update LOCAL-x8m --status in_progress
-bd close LOCAL-x8m --reason "Completed"
+# Install audiocraft (compile from source if needed)
+pip install git+https://github.com/facebookresearch/audiocraft.git
 
-# List all tasks
-bd list
+# Verify GPU access
+python -c "import torch; print(torch.cuda.is_available())"
 ```
 
-## Development Workflow
+If installation fails, create beads task and compile from source.
 
-### Phase 1: Container Verification (LOCAL-x8m)
+### 1b. Create Kokoro TTS Environment
 
-1. Research correct container images for Jetson Thor JetPack 7.4
-2. Check dustynv/jetson-containers GitHub for available tags
-3. Check NGC catalog for NIM containers supporting aarch64
-4. Update `local-ai/docker-compose.yml` with correct images
-5. Run `local-ai/scripts/setup.sh` to pull images
-6. Verify all containers start: `docker compose up -d && docker compose ps`
+```bash
+# Create Kokoro TTS environment
+conda create -n vsk-kokoro python=3.10 -y
+conda activate vsk-kokoro
 
-**Research Resources:**
-- https://github.com/dusty-nv/jetson-containers
-- https://catalog.ngc.nvidia.com/
-- NGC CLI: `ngc registry image list`
+# Install PyTorch with CUDA 13
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu130
 
-### Phase 2: Integration Testing (LOCAL-tpn, LOCAL-7f8, LOCAL-dk7, LOCAL-3zp)
+# Install Kokoro TTS
+pip install git+https://github.com/hexgrad/kokoro.git
 
-For each container:
-1. Start container individually: `docker compose up -d <service>`
-2. Check logs: `docker compose logs -f <service>`
-3. Test endpoint with curl:
-   ```bash
-   # Image generation
-   curl -X POST http://localhost:10001/txt2img \
-     -H "Content-Type: application/json" \
-     -d '{"prompt": "a cat", "width": 512, "height": 512}'
-   ```
-4. If endpoint differs, update `local-ai/gateway/routes.py`
-5. Test through gateway: `curl http://localhost:10000/fal-ai/flux/dev ...`
+# Or if that fails, clone and build:
+git clone https://github.com/hexgrad/kokoro.git /tmp/kokoro
+cd /tmp/kokoro && pip install -e .
 
-### Phase 3: File Serving (LOCAL-ccn)
+# Verify
+python -c "import kokoro; print('Kokoro installed')"
+```
 
-The gateway needs to serve generated files:
-1. Add `/files/<path>` route to `gateway/main.py`
-2. Mount shared volume in docker-compose for media storage
-3. Update response URLs to point to gateway file server
+---
 
-### Phase 4: End-to-End Testing (LOCAL-cvl)
+## Phase 2: Service Wrappers
 
-1. Start all services: `./local-ai/scripts/start-all.sh`
-2. Start frontend: `npm run dev`
-3. Open http://localhost:3000
-4. Test each generation type through the UI
-5. Verify timeline composition works
-6. Test video export
+Create FastAPI servers in `local-ai/services/`:
 
-## Technical Notes
+### ComfyUI Service (`comfyui_service.py`)
+- Wrap existing ComfyUI installation
+- Expose API on port 10001
+- Handle workflow submission and result retrieval
 
-### Request/Response Translation
+### Cosmos Service (`cosmos_service.py`)
+- Wrap existing Cosmos installation
+- Expose API on port 10002
+- Handle text-to-video and image-to-video
 
-The gateway translates fal.ai API format to local container formats:
+### Audiocraft Service (`audiocraft_service.py`)
+- NEW service for MusicGen
+- Expose API on port 10003
+- Handle music generation from text prompts
 
-**fal.ai format:**
-```json
-{
-  "prompt": "a beautiful sunset",
-  "image_size": {"width": 1024, "height": 1024}
+### TTS Services
+- `riva_tts_service.py` - Wrap Riva Thor (port 10004)
+- `kokoro_tts_service.py` - Wrap Kokoro (port 10005)
+- `tts_router.py` - Route to available TTS service
+
+---
+
+## Phase 3: Systemd Services
+
+Create systemd unit files in `local-ai/systemd/`:
+
+### Template for each service:
+```ini
+[Unit]
+Description=VSK <Service Name>
+After=network.target
+
+[Service]
+Type=simple
+User=kp
+WorkingDirectory=/home/kp/repo2/video-starter-kit/local-ai
+Environment="PATH=/home/kp/anaconda3/envs/<env>/bin:$PATH"
+ExecStart=/home/kp/anaconda3/envs/<env>/bin/python services/<service>.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Installation:
+```bash
+sudo cp local-ai/systemd/*.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable vsk-comfyui vsk-cosmos vsk-audiocraft vsk-riva-tts vsk-kokoro-tts vsk-gateway
+sudo systemctl start vsk-comfyui vsk-cosmos vsk-audiocraft vsk-riva-tts vsk-kokoro-tts vsk-gateway
+```
+
+---
+
+## Phase 4: Gateway Updates
+
+Update `local-ai/gateway/`:
+
+1. **main.py**: Update service URLs to localhost ports
+2. **routes.py**:
+   - Route `/fal-ai/flux/*` to ComfyUI (10001)
+   - Route `/fal-ai/cosmos/*` to Cosmos (10002)
+   - Route `/fal-ai/audio/*` to Audiocraft (10003)
+   - Route `/fal-ai/tts/*` to TTS router (checks Riva then Kokoro)
+3. **Health checks**: Add endpoints to verify all services
+
+---
+
+## Phase 5: Testing
+
+### Individual Service Tests
+
+```bash
+# ComfyUI
+curl -X POST http://localhost:10001/api/prompt \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": {...}}'
+
+# Cosmos
+curl -X POST http://localhost:10002/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "a cat walking", "num_frames": 16}'
+
+# Audiocraft
+curl -X POST http://localhost:10003/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "upbeat electronic music", "duration": 10}'
+
+# Riva TTS
+curl -X POST http://localhost:10004/v1/tts \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hello world", "voice": "English-US.Female-1"}'
+
+# Kokoro TTS
+curl -X POST http://localhost:10005/v1/tts \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hello world"}'
+
+# Gateway health
+curl http://localhost:10000/health
+```
+
+### GPU Verification
+```bash
+nvidia-smi  # All services should show GPU processes
+```
+
+---
+
+## Phase 6: Browser Automation Testing
+
+Use Skyvern or Playwright for E2E testing:
+
+### Test Workflow:
+1. Navigate to http://localhost:3000
+2. Test image generation (Flux)
+3. Test video generation (Cosmos)
+4. Test music generation (Audiocraft)
+5. Test TTS (Riva/Kokoro)
+6. Test timeline composition
+7. Test video export
+
+Create beads tasks for any failures found.
+
+---
+
+## Phase 7: Setup Scripts
+
+Create `local-ai/scripts/setup-jetson-thor-conda.sh`:
+
+```bash
+#!/bin/bash
+# Setup Video Starter Kit Local AI on Jetson Thor
+
+# Check prerequisites
+check_cuda() { nvidia-smi &>/dev/null || { echo "CUDA not found"; exit 1; } }
+check_conda() { conda --version &>/dev/null || { echo "Conda not found"; exit 1; } }
+
+# Check port availability
+check_port() {
+    if ss -tlnp | grep -q ":$1 "; then
+        echo "Port $1 in use, finding alternative..."
+        # Find next available port
+    fi
 }
+
+# Create missing environments
+setup_audiocraft() { ... }
+setup_kokoro() { ... }
+
+# Install systemd services
+install_services() { ... }
+
+# Start all services
+start_services() { ... }
+
+# Main
+check_cuda
+check_conda
+check_port 10000
+check_port 10001
+# ... etc
+setup_audiocraft
+setup_kokoro
+install_services
+start_services
+echo "Setup complete!"
 ```
 
-**Local Flux format:**
-```json
-{
-  "prompt": "a beautiful sunset",
-  "width": 1024,
-  "height": 1024,
-  "num_inference_steps": 28
-}
-```
-
-Update `gateway/main.py` `transform_request_to_local()` function as needed.
-
-### Container API Endpoints
-
-Each container exposes different endpoints. Common patterns:
-- dustynv containers: Usually `/generate` or `/txt2img`
-- NIM containers: Usually `/v1/chat/completions` or `/generate`
-- Riva: gRPC on port 50051, HTTP wrapper needed
-
-### GPU Memory Management
-
-Jetson Thor has unified memory. If OOM errors occur:
-1. Start containers one at a time
-2. Reduce batch sizes in model configs
-3. Consider model quantization (INT8/FP16)
+---
 
 ## Success Criteria
 
-- [ ] All 4 container images pull and start on Jetson Thor
-- [ ] Image generation works through gateway
-- [ ] Video generation works through gateway
-- [ ] Music generation works through gateway
-- [ ] TTS works through gateway
-- [ ] Frontend can generate all media types in local mode
+All must be true before project is complete:
+
+- [ ] Audiocraft conda env created with CUDA 13 support
+- [ ] Kokoro TTS conda env created with CUDA 13 support
+- [ ] All AI services running as systemd units
+- [ ] Gateway health check passes: `curl http://localhost:10000/health`
+- [ ] Image generation works (ComfyUI/Flux)
+- [ ] Video generation works (Cosmos)
+- [ ] Music generation works (Audiocraft)
+- [ ] TTS works (Riva Thor OR Kokoro)
+- [ ] Frontend works with `NEXT_PUBLIC_LOCAL_AI=true`
 - [ ] Complete video creation workflow succeeds
+- [ ] Browser automation tests pass
+- [ ] Setup scripts work on fresh Jetson Thor environment
+- [ ] All beads tasks are closed
+
+---
+
+## Fix Loop Protocol
+
+When problems are found:
+
+1. **Research**: Use web search, Perplexity, or Linkup to find solutions
+2. **Plan**: Create beads task with description and acceptance criteria
+3. **Implement**: Make code changes
+4. **Test**: Verify fix works
+5. **Iterate**: If still broken, research more and try again
+
+```
+LOOP until all tests pass:
+  1. Run all tests
+  2. If failure found:
+     a. Create beads task for fix
+     b. Research solution (use scholarly MCP servers for cutting-edge issues)
+     c. Implement fix
+     d. Test fix
+     e. If fixed: Close task
+     f. If not fixed: Update task notes, continue research
+  3. If all tests pass: Move to next phase
+```
+
+---
 
 ## Commands Reference
 
 ```bash
-# Start everything
-cd /home/kp/repo2/video-starter-kit
-./local-ai/scripts/start-all.sh
-npm run dev
+# Conda
+conda activate vsk-audiocraft
+conda activate vsk-kokoro
+conda activate comfyui
+conda activate cosmos
+conda activate riva_thor
 
-# Check container status
-docker compose -f local-ai/docker-compose.yml ps
-docker compose -f local-ai/docker-compose.yml logs -f
+# Beads
+bd ready                    # Show unblocked tasks
+bd list --status=open       # All open tasks
+bd show <id>                # Task details
+bd update <id> --status=in_progress
+bd close <id> --reason="Completed"
+bd create --title="..." --type=task --priority=2
 
-# Test gateway
-curl http://localhost:10000/health
-curl http://localhost:10000/endpoints
+# Systemd
+sudo systemctl status vsk-*
+sudo systemctl start vsk-comfyui
+sudo systemctl stop vsk-comfyui
+sudo systemctl restart vsk-*
+journalctl -u vsk-comfyui -f  # View logs
 
-# Beads task management
-bd ready           # Show unblocked tasks
-bd list            # Show all tasks
-bd show <id>       # Task details
-bd update <id> --status in_progress
-bd close <id>
+# Port checking
+lsof -i :10000
+ss -tlnp | grep 10000
+
+# GPU monitoring
+nvidia-smi
+watch -n 1 nvidia-smi
 ```
+
+---
+
+## Continuous Operation
+
+Ralph Loop should:
+1. Check `bd ready` for available work
+2. Pick highest priority unblocked task
+3. Work on task until complete or blocked
+4. Update beads with progress
+5. If blocked, create new tasks for blockers
+6. Repeat until all success criteria met
+7. NEVER stop until project is 100% complete and verified

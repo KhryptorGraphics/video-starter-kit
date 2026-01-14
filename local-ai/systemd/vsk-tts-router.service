@@ -1,0 +1,20 @@
+[Unit]
+Description=VSK TTS Router - Routes to Riva or Kokoro TTS
+After=network.target vsk-kokoro-tts.service
+Wants=vsk-kokoro-tts.service
+
+[Service]
+Type=simple
+User=kp
+WorkingDirectory=/home/kp/repo2/video-starter-kit/local-ai/services
+Environment="PATH=/home/kp/anaconda3/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="KOKORO_URL=http://localhost:10005"
+Environment="RIVA_URL=http://localhost:10006"
+ExecStart=/home/kp/anaconda3/bin/python tts_router_service.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

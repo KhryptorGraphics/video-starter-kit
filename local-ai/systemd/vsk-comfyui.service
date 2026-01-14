@@ -1,0 +1,18 @@
+[Unit]
+Description=VSK ComfyUI - Image Generation Service
+After=network.target
+
+[Service]
+Type=simple
+User=kp
+WorkingDirectory=/home/kp/ComfyUI
+Environment="PATH=/home/kp/anaconda3/envs/comfyui/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CUDA_VISIBLE_DEVICES=0"
+ExecStart=/home/kp/anaconda3/envs/comfyui/bin/python main.py --listen 0.0.0.0 --port 8188 --preview-method auto
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

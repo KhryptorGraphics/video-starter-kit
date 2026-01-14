@@ -1,0 +1,18 @@
+[Unit]
+Description=VSK Kokoro TTS - Text-to-Speech Service
+After=network.target
+
+[Service]
+Type=simple
+User=kp
+WorkingDirectory=/home/kp/repo2/video-starter-kit/local-ai/services
+Environment="PATH=/home/kp/anaconda3/envs/vsk-kokoro/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CUDA_VISIBLE_DEVICES=0"
+ExecStart=/home/kp/anaconda3/envs/vsk-kokoro/bin/python kokoro_tts_service.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

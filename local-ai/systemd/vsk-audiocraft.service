@@ -1,0 +1,18 @@
+[Unit]
+Description=VSK Audiocraft - Music Generation Service
+After=network.target
+
+[Service]
+Type=simple
+User=kp
+WorkingDirectory=/home/kp/repo2/video-starter-kit/local-ai/services
+Environment="PATH=/home/kp/anaconda3/envs/vsk-audiocraft/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CUDA_VISIBLE_DEVICES=0"
+ExecStart=/home/kp/anaconda3/envs/vsk-audiocraft/bin/python audiocraft_service.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

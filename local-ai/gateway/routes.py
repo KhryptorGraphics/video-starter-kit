@@ -12,10 +12,14 @@ import os
 from typing import Dict, Optional
 from dataclasses import dataclass
 
-# Container URLs from environment
-COMFYUI_URL = os.getenv("COMFYUI_URL", "http://localhost:10001")
+# Service URLs from environment
+# ComfyUI runs on 8188 (its native port, exposed via systemd)
+COMFYUI_URL = os.getenv("COMFYUI_URL", "http://localhost:8188")
+# Cosmos video generation service
 COSMOS_URL = os.getenv("COSMOS_URL", "http://localhost:10002")
+# Audiocraft music generation service
 AUDIOCRAFT_URL = os.getenv("AUDIOCRAFT_URL", "http://localhost:10003")
+# TTS router (routes to Riva or Kokoro)
 TTS_URL = os.getenv("TTS_URL", "http://localhost:10004")
 
 
